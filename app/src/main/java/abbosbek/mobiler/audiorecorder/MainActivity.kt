@@ -10,13 +10,16 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
 
@@ -33,6 +36,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
     private lateinit var timer : Timer
 
     private lateinit var vibrator: Vibrator
+
+    private lateinit var amplitudes : ArrayList<Float>
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()){isGranted->
@@ -57,6 +62,24 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
             checkPermission()
         }
 
+        binding.btnList.setOnClickListener {
+            //todo
+            Toast.makeText(this, "list saved", Toast.LENGTH_SHORT).show()
+
+        }
+
+        binding.btnDone.setOnClickListener {
+            //todo
+            stopRecorder()
+            Toast.makeText(this, "Record saved", Toast.LENGTH_SHORT).show()
+        }
+        binding.btnDelete.setOnClickListener {
+            stopRecorder()
+            File("$dirPath$fileName.mp3")
+            Toast.makeText(this, "Record delete", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnDelete.isClickable = false
 
     }
 
@@ -114,6 +137,14 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         isPaused = false
 
         timer.start()
+
+        binding.apply {
+            btnDelete.isClickable = true
+            btnDelete.setImageResource(R.drawable.ic_delete)
+
+            btnList.visibility = View.GONE
+            btnDone.visibility = View.VISIBLE
+        }
     }
 
     private fun pauseRecording(){
@@ -131,6 +162,25 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
 
     private fun stopRecorder(){
         timer.stop()
+        recorder.apply {
+            stop()
+            release()
+        }
+
+        isPaused = false
+        isRecording = false
+
+
+        binding.btnList.visibility = View.VISIBLE
+        binding.btnDone.visibility = View.GONE
+
+        binding.btnDelete.isClickable = false
+        binding.btnDelete.setImageResource(R.drawable.ic_delete_disabled)
+
+        binding.btnRecord.setImageResource(R.drawable.ic_record)
+
+        binding.tvTimer.text = "00:00:00"
+        binding.waveFormView.clear()
     }
 
     override fun onTimerTick(duration: String) {
