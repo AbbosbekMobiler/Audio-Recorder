@@ -1,6 +1,8 @@
 package abbosbek.mobiler.audiorecorder
 
 import abbosbek.mobiler.audiorecorder.databinding.ActivityMainBinding
+import abbosbek.mobiler.audiorecorder.db.AppDatabase
+import abbosbek.mobiler.audiorecorder.model.AudioRecord
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
@@ -14,7 +16,11 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileOutputStream
+import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
@@ -30,6 +36,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
 
     private var isRecording = false
     private var isPaused = false
+
+    private var duration = ""
 
     private lateinit var timer : Timer
 
@@ -49,6 +57,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
             }
         }
 
+    private lateinit var db : AppDatabase
+
     @SuppressLint("ServiceCast")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +69,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         bottomSheetBehavior.peekHeight = 0
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
 
+
+        db = AppDatabase.getInstance(this)
 
         timer = Timer(this)
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -114,6 +126,26 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
             var newFile = File("$dirPath$newFileName.mp3")
             File("$dirPath$newFileName.mp3").renameTo(newFile)
         }
+
+        var filePath = "$dirPath$newFileName.mp3"
+        var timestamp = Date().time
+        var ampsPath = "$dirPath$newFileName"
+
+        try {
+            var fos = FileOutputStream(ampsPath)
+            var out = ObjectOutputStream(fos)
+            out.writeObject(amplitudes)
+            fos.close()
+            out.close()
+        }catch (e : Exception){
+            e.printStackTrace()
+        }
+        var record = AudioRecord(newFileName,filePath,timestamp,duration,ampsPath)
+
+        GlobalScope.launch {
+            db.audioRecordDao().insert(record)
+        }
+
     }
 
     private fun dismiss(){
@@ -227,11 +259,11 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         binding.btnRecord.setImageResource(R.drawable.ic_record)
 
         binding.tvTimer.text = "00:00:00"
-        binding.waveFormView.clear()
+        amplitudes = binding.waveFormView.clear()
     }
 
     override fun onTimerTick(duration: String) {
-
+        this.duration = duration.dropLast(3)
         binding.tvTimer.text = duration
         binding.waveFormView.addAmplitude(recorder.maxAmplitude.toFloat())
     }
