@@ -5,17 +5,15 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
-import android.os.Build
+import android.os.*
 import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import androidx.core.content.getSystemService
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -39,6 +37,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
 
     private lateinit var amplitudes : ArrayList<Float>
 
+    private lateinit var bottomSheetBehavior : BottomSheetBehavior<LinearLayout>
+
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()){isGranted->
             if (isGranted){
@@ -55,6 +55,11 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheetInclude.bottomSheet)
+        bottomSheetBehavior.peekHeight = 0
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+
+
         timer = Timer(this)
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
@@ -69,18 +74,60 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         }
 
         binding.btnDone.setOnClickListener {
-            //todo
+
             stopRecorder()
             Toast.makeText(this, "Record saved", Toast.LENGTH_SHORT).show()
+
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+            binding.bottomSheetBg.visibility = View.VISIBLE
+            binding.bottomSheetInclude.fileNameInput.setText(fileName)
         }
+
+        binding.bottomSheetInclude.btnCancel.setOnClickListener {
+            File("$dirPath$fileName.mp3").delete()
+            dismiss()
+        }
+        binding.bottomSheetInclude.btnOk.setOnClickListener {
+            dismiss()
+            saveRecord()
+        }
+
+        binding.bottomSheetBg.setOnClickListener {
+            File("$dirPath$fileName.mp3").delete()
+            dismiss()
+        }
+
         binding.btnDelete.setOnClickListener {
             stopRecorder()
-            File("$dirPath$fileName.mp3")
+            File("$dirPath$fileName.mp3").delete()
             Toast.makeText(this, "Record delete", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnDelete.isClickable = false
 
+    }
+
+    private fun saveRecord() = with(binding) {
+
+        val newFileName = bottomSheetInclude.fileNameInput.text.toString()
+        if (newFileName != fileName){
+            var newFile = File("$dirPath$newFileName.mp3")
+            File("$dirPath$newFileName.mp3").renameTo(newFile)
+        }
+    }
+
+    private fun dismiss(){
+        binding.bottomSheetBg.visibility = View.GONE
+        Handler(Looper.getMainLooper()).postDelayed({
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        },100)
+        hideKeyBoard(binding.bottomSheetInclude.fileNameInput)
+
+    }
+
+    private fun hideKeyBoard(view: View){
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view.windowToken,0)
     }
 
     private fun checkPermission(){
