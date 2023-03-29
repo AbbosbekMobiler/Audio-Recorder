@@ -76,9 +76,11 @@
         android:id="@+id/bottomSheetBg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:visibility="gone"
         android:background="@color/opaqueBG"/>
     
     <include
+        android:id="@+id/bottomSheetInclude"
         layout="@layout/bottom_sheet"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
