@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:id="@+id/bottomSheet"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:background="@drawable/background_round"
@@ -20,6 +21,7 @@
         android:layout_height="wrap_content"
         style="@style/TextLayoutStyle">
         <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/fileNameInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="File Name"

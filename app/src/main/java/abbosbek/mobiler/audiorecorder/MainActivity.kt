@@ -1,22 +1,26 @@
 package abbosbek.mobiler.audiorecorder
 
 import abbosbek.mobiler.audiorecorder.databinding.ActivityMainBinding
+import abbosbek.mobiler.audiorecorder.db.AppDatabase
+import abbosbek.mobiler.audiorecorder.model.AudioRecord
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
-import android.os.Build
+import android.os.*
 import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import androidx.core.content.getSystemService
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileOutputStream
+import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
@@ -33,11 +37,15 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
     private var isRecording = false
     private var isPaused = false
 
+    private var duration = ""
+
     private lateinit var timer : Timer
 
     private lateinit var vibrator: Vibrator
 
     private lateinit var amplitudes : ArrayList<Float>
+
+    private lateinit var bottomSheetBehavior : BottomSheetBehavior<LinearLayout>
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()){isGranted->
@@ -49,11 +57,20 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
             }
         }
 
+    private lateinit var db : AppDatabase
+
     @SuppressLint("ServiceCast")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheetInclude.bottomSheet)
+        bottomSheetBehavior.peekHeight = 0
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+
+
+        db = AppDatabase.getInstance(this)
 
         timer = Timer(this)
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -69,18 +86,80 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         }
 
         binding.btnDone.setOnClickListener {
-            //todo
+
             stopRecorder()
             Toast.makeText(this, "Record saved", Toast.LENGTH_SHORT).show()
+
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+            binding.bottomSheetBg.visibility = View.VISIBLE
+            binding.bottomSheetInclude.fileNameInput.setText(fileName)
         }
+
+        binding.bottomSheetInclude.btnCancel.setOnClickListener {
+            File("$dirPath$fileName.mp3").delete()
+            dismiss()
+        }
+        binding.bottomSheetInclude.btnOk.setOnClickListener {
+            dismiss()
+            saveRecord()
+        }
+
+        binding.bottomSheetBg.setOnClickListener {
+            File("$dirPath$fileName.mp3").delete()
+            dismiss()
+        }
+
         binding.btnDelete.setOnClickListener {
             stopRecorder()
-            File("$dirPath$fileName.mp3")
+            File("$dirPath$fileName.mp3").delete()
             Toast.makeText(this, "Record delete", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnDelete.isClickable = false
 
+    }
+
+    private fun saveRecord() = with(binding) {
+
+        val newFileName = bottomSheetInclude.fileNameInput.text.toString()
+        if (newFileName != fileName){
+            var newFile = File("$dirPath$newFileName.mp3")
+            File("$dirPath$newFileName.mp3").renameTo(newFile)
+        }
+
+        var filePath = "$dirPath$newFileName.mp3"
+        var timestamp = Date().time
+        var ampsPath = "$dirPath$newFileName"
+
+        try {
+            var fos = FileOutputStream(ampsPath)
+            var out = ObjectOutputStream(fos)
+            out.writeObject(amplitudes)
+            fos.close()
+            out.close()
+        }catch (e : Exception){
+            e.printStackTrace()
+        }
+        var record = AudioRecord(newFileName,filePath,timestamp,duration,ampsPath)
+
+        GlobalScope.launch {
+            db.audioRecordDao().insert(record)
+        }
+
+    }
+
+    private fun dismiss(){
+        binding.bottomSheetBg.visibility = View.GONE
+        Handler(Looper.getMainLooper()).postDelayed({
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        },100)
+        hideKeyBoard(binding.bottomSheetInclude.fileNameInput)
+
+    }
+
+    private fun hideKeyBoard(view: View){
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view.windowToken,0)
     }
 
     private fun checkPermission(){
@@ -180,11 +259,11 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         binding.btnRecord.setImageResource(R.drawable.ic_record)
 
         binding.tvTimer.text = "00:00:00"
-        binding.waveFormView.clear()
+        amplitudes = binding.waveFormView.clear()
     }
 
     override fun onTimerTick(duration: String) {
-
+        this.duration = duration.dropLast(3)
         binding.tvTimer.text = duration
         binding.waveFormView.addAmplitude(recorder.maxAmplitude.toFloat())
     }
