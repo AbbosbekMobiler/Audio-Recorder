@@ -1,10 +1,13 @@
-package abbosbek.mobiler.audiorecorder
+package abbosbek.mobiler.audiorecorder.ui
 
+import abbosbek.mobiler.audiorecorder.R
+import abbosbek.mobiler.audiorecorder.utils.Timer
 import abbosbek.mobiler.audiorecorder.databinding.ActivityMainBinding
 import abbosbek.mobiler.audiorecorder.db.AppDatabase
 import abbosbek.mobiler.audiorecorder.model.AudioRecord
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.os.*
@@ -80,9 +83,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         }
 
         binding.btnList.setOnClickListener {
-            //todo
-            Toast.makeText(this, "list saved", Toast.LENGTH_SHORT).show()
 
+            startActivity(Intent(this,GalleryActivity::class.java))
         }
 
         binding.btnDone.setOnClickListener {
@@ -259,12 +261,11 @@ class MainActivity : AppCompatActivity(), Timer.OnTimeTickListener {
         binding.btnRecord.setImageResource(R.drawable.ic_record)
 
         binding.tvTimer.text = "00:00:00"
-        amplitudes = binding.waveFormView.clear()
+
     }
 
     override fun onTimerTick(duration: String) {
         this.duration = duration.dropLast(3)
         binding.tvTimer.text = duration
-        binding.waveFormView.addAmplitude(recorder.maxAmplitude.toFloat())
     }
 }

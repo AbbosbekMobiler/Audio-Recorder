@@ -8,8 +8,8 @@ interface AudioRecordDao {
 
     @Query("select * from audioRecords") fun getAll() : List<AudioRecord>
 
-    @Insert
-    fun insert(vararg audioRecord: AudioRecord)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(audioRecord: AudioRecord)
 
     @Delete
     fun delete(audioRecord: AudioRecord)

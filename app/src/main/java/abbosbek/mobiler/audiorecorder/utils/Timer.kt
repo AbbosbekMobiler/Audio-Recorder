@@ -1,8 +1,7 @@
-package abbosbek.mobiler.audiorecorder
+package abbosbek.mobiler.audiorecorder.utils
 
 import android.os.Handler
 import android.os.Looper
-import java.time.Duration
 
 class Timer(listener : OnTimeTickListener) {
 
