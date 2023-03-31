@@ -6,8 +6,10 @@ import abbosbek.mobiler.audiorecorder.adapter.OnItemClickListener
 import abbosbek.mobiler.audiorecorder.databinding.ActivityGalleryBinding
 import abbosbek.mobiler.audiorecorder.db.AppDatabase
 import abbosbek.mobiler.audiorecorder.model.AudioRecord
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.MediaStore.Audio
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +47,7 @@ class GalleryActivity : AppCompatActivity(),OnItemClickListener{
     }
 
     private fun fetchAll(){
-        CoroutineScope(Dispatchers.IO).launch {
+        GlobalScope.launch {
             records.clear()
             var queryResult = db.audioRecordDao().getAll()
             records.addAll(queryResult)
@@ -54,7 +56,11 @@ class GalleryActivity : AppCompatActivity(),OnItemClickListener{
     }
 
     override fun onItemClickListener(position: Int) {
-        Toast.makeText(this, "Item Clicked", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this,AudioPlayerActivity::class.java)
+        intent.putExtra("filepath",records[position].filePath)
+        intent.putExtra("filename",records[position].fileName)
+
+        startActivity(intent)
     }
 
     override fun onItemLongClickListener(position: Int) {
