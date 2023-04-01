@@ -96,10 +96,14 @@
                 android:id="@+id/btnDelete"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:clickable="false"
+                android:backgroundTint="@color/grayDarkDisabled"
                 android:background="@drawable/round_delete_24"/>
             <TextView
+                android:id="@+id/tvDelete"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/grayDarkDisabled"
                 android:text="Delete"/>
         </LinearLayout>
 
@@ -112,10 +116,13 @@
                 android:id="@+id/btnEdit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:backgroundTint="@color/grayDarkDisabled"
                 android:background="@drawable/ic_edit"/>
             <TextView
+                android:id="@+id/tvEdit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/grayDarkDisabled"
                 android:text="Edit"/>
         </LinearLayout>
 
