@@ -9,18 +9,29 @@ import abbosbek.mobiler.audiorecorder.model.AudioRecord
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+
+
 import android.provider.MediaStore.Audio
+
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.res.ResourcesCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.textfield.TextInputEditText
+
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -85,18 +96,66 @@ class GalleryActivity : AppCompatActivity(),OnItemClickListener{
         fetchAll()
 
         binding.btnClose.setOnClickListener {
+
+            leaveEditMode()
+
             editBar.visibility = View.GONE
             records.map {
                 it.isChecked = false
                 mAdapter.setEditMode(false)
             }
             bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+
         }
 
         binding.btnSelectAll.setOnClickListener {
             allChecked = !allChecked
             records.map { it.isChecked = allChecked }
             mAdapter.notifyDataSetChanged()
+
+
+            if (allChecked){
+                disableRename()
+                enableDelete()
+            }else{
+                disableRename()
+                disableDelete()
+            }
+        }
+        binding.btnDelete.setOnClickListener {
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle("Delete record?")
+            val nbRecords = records.count { it.isChecked }
+            builder.setMessage("Are you sure you want to delete $nbRecords record(s)")
+
+            builder.setPositiveButton("Delete"){_,_->
+                val toDelete = records.filter { it.isChecked }.toTypedArray()
+
+                GlobalScope.launch {
+                    db.audioRecordDao().delete(toDelete)
+                    runOnUiThread {
+                        records.removeAll(toDelete)
+                        mAdapter.notifyDataSetChanged()
+                        leaveEditMode()
+                    }
+                }
+            }
+
+            builder.setNegativeButton("Cancel"){_,_->
+
+            }
+            val dialog = builder.create()
+            dialog.show()
+        }
+
+    }
+    private fun leaveEditMode(){
+        editBar.visibility = View.GONE
+        records.map {
+            it.isChecked = false
+            mAdapter.setEditMode(false)
+        }
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
         }
 
     }
@@ -113,6 +172,28 @@ class GalleryActivity : AppCompatActivity(),OnItemClickListener{
 
         }
 
+
+    }
+
+    private fun disableRename() = with(binding){
+        btnEdit.isClickable = false
+        btnEdit.backgroundTintList = ResourcesCompat.getColorStateList(resources,R.color.grayDarkDisabled,theme)
+        tvEdit.setTextColor(ResourcesCompat.getColorStateList(resources,R.color.grayDarkDisabled,theme))
+    }
+    private fun disableDelete() = with(binding){
+        btnDelete.isClickable = false
+        btnDelete.backgroundTintList = ResourcesCompat.getColorStateList(resources,R.color.grayDarkDisabled,theme)
+        tvDelete.setTextColor(ResourcesCompat.getColorStateList(resources,R.color.grayDarkDisabled,theme))
+    }
+    private fun enableRename() = with(binding){
+        btnEdit.isClickable = false
+        btnEdit.backgroundTintList = ResourcesCompat.getColorStateList(resources,R.color.grayDark,theme)
+        tvEdit.setTextColor(ResourcesCompat.getColorStateList(resources,R.color.grayDark,theme))
+    }
+    private fun enableDelete() = with(binding){
+        btnDelete.isClickable = false
+        btnDelete.backgroundTintList = ResourcesCompat.getColorStateList(resources,R.color.grayDark,theme)
+        tvDelete.setTextColor(ResourcesCompat.getColorStateList(resources,R.color.grayDark,theme))
     }
 
     private fun fetchAll(){
@@ -131,6 +212,21 @@ class GalleryActivity : AppCompatActivity(),OnItemClickListener{
         if (mAdapter.isEditMode()){
             records[position].isChecked = !records[position].isChecked
             mAdapter.notifyItemChanged(position)
+            var nbSelected = records.count{it.isChecked}
+            when(nbSelected){
+                0 ->{
+                    disableRename()
+                    disableDelete()
+                }
+                1 ->{
+                    enableDelete()
+                    enableRename()
+                }
+                else ->{
+                    disableRename()
+                    enableDelete()
+                }
+
         }else{
             val intent = Intent(this,AudioPlayerActivity::class.java)
             intent.putExtra("filepath",records[position].filePath)
@@ -150,6 +246,10 @@ class GalleryActivity : AppCompatActivity(),OnItemClickListener{
 
         if (mAdapter.isEditMode() && editBar.visibility == View.GONE){
             editBar.visibility = View.VISIBLE
+
+            enableDelete()
+            enableRename()
+
         }
     }
 }
